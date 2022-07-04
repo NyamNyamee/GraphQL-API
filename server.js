@@ -7,37 +7,17 @@ let tweets = [
   {
     id: "1",
     text: "Tweet 1",
-    author: {
-      id: "1",
-      username: "inboo",
-      firstName: "Inwoo",
-      lastName: "Lee",
-      email: "jopelee2@gmail.com",
-    },
+    userId: "3",
   },
   {
     id: "2",
     text: "Tweet 2",
-    author: {
-      id: "2",
-      username: "invu",
-      firstName: "Segu",
-      lastName: "Go",
-      email: "gosegu@gmail.com",
-      birth: "19970213",
-    },
+    userId: "2",
   },
   {
     id: "3",
     text: "Tweet 3",
-    author: {
-      id: "3",
-      username: "chani",
-      firstName: "chan",
-      lastName: "vii",
-      email: "viichan@gmail.com",
-      birth: "19990213",
-    },
+    userId: "1",
   },
 ];
 
@@ -57,12 +37,21 @@ let users = [
     lastName: "lil",
     email: "lilpa@gmail.com",
     birth: "19960213",
-    fullName: "bat"
+    fullName: "bat",
+  },
+  {
+    id: "3",
+    username: "vichani",
+    firstName: "chan",
+    lastName: "vii",
+    email: "viichan@gmail.com",
+    birth: "19990213",
+    fullName: "gorani",
   },
 ];
 
 /**
- * gql로 만든 graphql 타입 정의
+ * gql로 만든 graphql 타입 정의 (SDL: schema definition query)쿼리
  */
 const typeDefs = gql`
   type User {
@@ -72,6 +61,9 @@ const typeDefs = gql`
     lastName: String!
     email: String!
     birth: String
+    """
+    루트쿼리가 아닌 user 타입 리졸버에서 firstName과 lastName을 받아 합치게 되는 필드
+    """
     fullName: String!
   }
 
@@ -85,8 +77,17 @@ const typeDefs = gql`
   Query 타입은 /와 같은 루트경로로, 필수로 작성해야함. 루트 쿼리이자 GET과 같은 역할임.
   """
   type Query {
+    """
+    모든 유저 리스트
+    """
     allUsers: [User!]!
+    """
+    모든 트윗 리스트
+    """
     allTweets: [Tweet!]!
+    """
+    특정 트윗
+    """
     tweet(id: ID!): Tweet
   }
 
@@ -94,7 +95,13 @@ const typeDefs = gql`
   데이터 변경 쿼리. POST, DELETE, PUT 등 변경과 관련된 모든 타입
   """
   type Mutation {
-    postTweet(text: String!, userId: ID!): Tweet!
+    """
+    트윗 생성. 생성 시 userId를 받아 Users에서 해당 유저를 찾고, Tweet의 author 필드에 대입
+    """
+    postTweet(text: String!, userId: ID!): Tweet
+    """
+    트윗 제거
+    """
     deleteTweet(id: ID!): Boolean!
   }
 `;
@@ -123,9 +130,11 @@ const resolvers = {
     postTweet(root, { text, userId }) {
       console.log(`postTweet is called`);
       console.log(text, userId);
+      if (!users.find((user) => user.id === userId)) return null; // user존재유무 유효성검사
       const newTweet = {
         id: parseInt(tweets[tweets.length - 1].id) + 1,
         text,
+        userId,
       };
       tweets.push(newTweet);
 
@@ -140,11 +149,20 @@ const resolvers = {
       return result;
     },
   },
-  User: {  // 타입 리졸버. query에서 사용자가 요청한 데이터를 먼저 찾고, 그 이후에 type resolver에서 찾아서 줌
+  User: {
+    // 타입 리졸버. query에서 사용자가 요청한 데이터를 먼저 찾고, 그 이후에 type resolver에서 찾아서 줌
     fullName(root, args) {
       console.log(`fullName is called`);
-      console.log(root);  // root는 root에서 얻은 부모? 데이터를 보여줌
+      //   console.log(root);  // root는 root에서 얻은 부모? 데이터를 보여줌
       return `${root.lastName} ${root.firstName}`;
+    },
+  },
+  Tweet: {
+    // 타입 리졸버. query에서 사용자가 요청한 데이터를 먼저 찾고, 그 이후에 type resolver에서 찾아서 줌
+    author({ userId }) {
+      console.log(`author is called`);
+      // console.log(userId);
+      return users.find((user) => user.id === userId);
     },
   },
 };
