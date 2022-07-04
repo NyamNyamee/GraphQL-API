@@ -41,6 +41,26 @@ let tweets = [
   },
 ];
 
+let users = [
+  {
+    id: "1",
+    username: "ine",
+    firstName: "ne",
+    lastName: "hi",
+    email: "ine@gmail.com",
+    birth: "19950213",
+  },
+  {
+    id: "2",
+    username: "lilpa",
+    firstName: "pa",
+    lastName: "lil",
+    email: "lilpa@gmail.com",
+    birth: "19960213",
+    fullName: "bat"
+  },
+];
+
 /**
  * gql로 만든 graphql 타입 정의
  */
@@ -52,6 +72,7 @@ const typeDefs = gql`
     lastName: String!
     email: String!
     birth: String
+    fullName: String!
   }
 
   type Tweet {
@@ -64,6 +85,7 @@ const typeDefs = gql`
   Query 타입은 /와 같은 루트경로로, 필수로 작성해야함. 루트 쿼리이자 GET과 같은 역할임.
   """
   type Query {
+    allUsers: [User!]!
     allTweets: [Tweet!]!
     tweet(id: ID!): Tweet
   }
@@ -82,6 +104,10 @@ const typeDefs = gql`
  */
 const resolvers = {
   Query: {
+    allUsers() {
+      console.log("allUsers is called");
+      return users;
+    },
     allTweets() {
       console.log("allTweets is called");
       return tweets;
@@ -112,6 +138,13 @@ const resolvers = {
       if (!tweets.find((tweet) => tweet.id === id)) result = false;
       else tweets = tweets.filter((tweet) => tweet.id !== id);
       return result;
+    },
+  },
+  User: {  // 타입 리졸버. query에서 사용자가 요청한 데이터를 먼저 찾고, 그 이후에 type resolver에서 찾아서 줌
+    fullName(root, args) {
+      console.log(`fullName is called`);
+      console.log(root);  // root는 root에서 얻은 부모? 데이터를 보여줌
+      return `${root.lastName} ${root.firstName}`;
     },
   },
 };
