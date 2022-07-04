@@ -1,4 +1,5 @@
 import { ApolloServer, gql } from "apollo-server";
+import fetch from "node-fetch";
 
 /**
  * DB대신 메모리 사용
@@ -73,6 +74,20 @@ const typeDefs = gql`
     author: User
   }
 
+  type Movie {
+    id: Int!
+    url: String!
+    imdb_code: String!
+    title: String!
+    title_english: String!
+    title_long: String!
+    slug: String!
+    year: Int!
+    rating: Float!
+    runtime: Float!
+    genres: [String!]!
+  }
+
   """
   Query 타입은 /와 같은 루트경로로, 필수로 작성해야함. 루트 쿼리이자 GET과 같은 역할임.
   """
@@ -89,6 +104,14 @@ const typeDefs = gql`
     특정 트윗
     """
     tweet(id: ID!): Tweet
+    """
+    모든 영회
+    """
+    allMovies(limit: Int): [Movie!]!
+    """
+    특정 영화
+    """
+    movie(id: ID!): Movie
   }
 
   """
@@ -120,11 +143,22 @@ const resolvers = {
       return tweets;
     },
     tweet(root, { id }) {
-      // 파라미터 전달 시 리졸버 함수의 2번째 인자에 들어옴
+      // 파라미터 전달 시 리졸버 함수의 2번째 인자로 들어옴
       console.log(`tweet is called`);
       console.log(id);
       return tweets.find((tweet) => tweet.id === id);
     },
+    // 참고 영화 API: https://yts.mx/api
+    async allMovies(root, { limit }) {
+      return await fetch(`https://yts.mx/api/v2/list_movies.json?limit=${limit}`)
+        .then((res) => res.json())
+        .then((json) => json.data.movies);
+    },
+    async movie(root, { id }) {
+        return await fetch(`https://yts.mx/api/v2/movie_details.json?movie_id=${id}`)
+        .then((res) => res.json())
+        .then((json) => json.data.movie);
+    }
   },
   Mutation: {
     postTweet(root, { text, userId }) {
